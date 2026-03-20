@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="M5StickC Plus スマートグラス画面カスタマイザー。ウィジェットをドラッグ＆ドロップして、グラスの表示を自由にデザインしよう。">
+  <title>SmartGlass Customizer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ===== Header ===== -->
+  <header class="header">
+    <div class="header-logo">
+      <div class="header-logo-icon">👓</div>
+      <div>
+        <h1>SmartGlass Customizer</h1>
+        <span>M5StickC Plus 画面エディター</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn" id="btn-reset" title="リセット">
+        <span class="btn-icon">🗑️</span>
+        <span class="btn-text">リセット</span>
+      </button>
+      <button class="btn btn-primary" id="btn-export" title="コード生成">
+        <span class="btn-icon">⚡</span>
+        <span class="btn-text">コード生成</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== Main Layout ===== -->
+  <div class="main-layout">
+
+    <!-- ===== Sidebar: Widget Palette ===== -->
+    <aside class="sidebar">
+
+      <!-- ★ M5Stick接続パネル -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">📡 M5Stick 接続</div>
+        <div class="connect-row">
+          <input type="text" class="prop-input" id="m5stick-ip" placeholder="例: 192.168.1.42" style="flex:1;">
+          <button class="btn btn-connect" id="btn-connect" title="接続テスト">📶</button>
+        </div>
+        <div class="connect-status" id="connect-status">未接続</div>
+        <button class="btn btn-primary btn-send" id="btn-send" title="M5Stickに送信" style="width:100%; margin-top:8px;">
+          <span class="btn-icon">🚀</span>
+          <span>レイアウトを送信</span>
+        </button>
+      </div>
+
+      <!-- ウィジェットパレット -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">基本ウィジェット</div>
+        <div class="widget-cards-row" id="widget-palette">
+
+          <div class="widget-card" draggable="true" data-widget-type="clock">
+            <div class="widget-card-icon clock">🕐</div>
+            <div class="widget-card-info">
+              <h3>時計</h3>
+              <p>現在時刻を表示</p>
+            </div>
+          </div>
+
+          <div class="widget-card" draggable="true" data-widget-type="text">
+            <div class="widget-card-icon text">✏️</div>
+            <div class="widget-card-info">
+              <h3>テキスト</h3>
+              <p>自由な文字を表示</p>
+            </div>
+          </div>
+
+          <div class="widget-card" draggable="true" data-widget-type="study">
+            <div class="widget-card-icon timer">📚</div>
+            <div class="widget-card-info">
+              <h3>勉強タイマー</h3>
+              <p>教科別カウントアップ</p>
+            </div>
+          </div>
+
+          <div class="widget-card" draggable="true" data-widget-type="timer">
+            <div class="widget-card-icon timer">⏱️</div>
+            <div class="widget-card-info">
+              <h3>タイマー</h3>
+              <p>カウントダウン表示</p>
+            </div>
+          </div>
+
+          <div class="widget-card" draggable="true" data-widget-type="bargraph">
+            <div class="widget-card-icon bargraph">📊</div>
+            <div class="widget-card-info">
+              <h3>棒グラフ</h3>
+              <p>教科別のグラフ</p>
+            </div>
+          </div>
+
+          <div class="widget-card" draggable="true" data-widget-type="schedule">
+            <div class="widget-card-icon schedule">📅</div>
+            <div class="widget-card-info">
+              <h3>計画表</h3>
+              <p>自作のスケジュール</p>
+            </div>
+          </div>
+
+          <div class="widget-card" draggable="true" data-widget-type="weather">
+            <div class="widget-card-icon weather">🌤️</div>
+            <div class="widget-card-info">
+              <h3>天気</h3>
+              <p>現在の天気情報</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">💡 使い方</div>
+        <p style="font-size:0.75rem; color:var(--text-secondary); line-height:1.6;">
+          ①ウィジェットを<strong>ドラッグ＆ドロップ</strong>で配置<br>
+          ②プロパティで位置・色・内容を調整<br>
+          ③M5StickのIPを入力して<strong>🚀送信</strong>で即反映！
+        </p>
+      </div>
+    </aside>
+
+    <!-- ===== Canvas Area ===== -->
+    <main class="canvas-area">
+      <div class="m5stick-frame">
+        <div class="m5stick-screen" id="m5stick-screen">
+          <div class="empty-state" id="empty-state">
+            <div class="empty-state-icon">📦</div>
+            <div class="empty-state-text">ウィジェットをドラッグ＆ドロップ</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- ===== Properties Toggle Button ===== -->
+  <button class="props-toggle-btn" id="props-toggle-btn" title="プロパティパネルの表示/非表示">⚙️</button>
+
+  <!-- ===== Properties Panel ===== -->
+  <div class="properties-panel" id="properties-panel">
+    <div class="properties-panel-title">
+      ⚙️ プロパティ <span class="badge" id="prop-type-badge">-</span>
+    </div>
+    <div id="properties-content">
+    </div>
+  </div>
+
+  <!-- ===== Toast ===== -->
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
