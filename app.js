@@ -72,10 +72,10 @@
       color: '#34D399',
       content: '05:00'
     },
-    bargraph: {
-      label: '棒グラフ',
-      x: 2, y: 1,
-      fontSize: 9,
+    piechart: {
+      label: '円グラフ',
+      x: 35, y: 35,
+      fontSize: 8,
       color: '#FFFFFF',
       content: ''
     },
@@ -97,7 +97,7 @@
 
   const TYPE_LABELS = {
     clock: '🕐 時計', text: '✏️ テキスト', study: '📚 勉強タイマー',
-    timer: '⏱️ タイマー', bargraph: '📊 棒グラフ',
+    timer: '⏱️ タイマー', piechart: '🍩 円グラフ',
     schedule: '📅 計画表', weather: '🌤️ 天気'
   };
 
@@ -131,17 +131,34 @@
       case 'timer':
         return `<div class="widget-render type-timer" style="font-size:${w.fontSize * scale}px; color:${w.color};">${escapeHtml(w.content)}</div>`;
 
-      case 'bargraph': {
-        let html = '<div class="widget-render type-bargraph">';
-        SUBJECTS.forEach((subj, i) => {
-          const val = Math.floor(Math.random() * 60) + 5;
-          html += `<div class="bar-item">
-            <span class="bar-label" style="font-size:${Math.max(7, w.fontSize - 1) * scale}px;">${subj}</span>
-            <div class="bar-fill" style="width:${val}px; background:${PASTEL_COLORS[i]};"></div>
-          </div>`;
+      case 'piechart': {
+        const r = w.fontSize >= 16 ? 40 : 25; // サイズ大まか
+        let grad = [];
+        let cur = 0;
+        let legendHTML = '<div style="display:flex; flex-direction:column; gap:2px;">';
+        
+        // プレビュー用にダミー値を設定
+        const vals = [30, 20, 15, 10, 8, 7, 5, 2, 2, 1, 0];
+        const sum = 100;
+
+        vals.forEach((val, i) => {
+          if (val === 0) return;
+          const pct = (val / sum) * 100;
+          grad.push(`${PASTEL_COLORS[i]} ${cur}% ${cur + pct}%`);
+          cur += pct;
+          if (i < 5) { // 凡例は上位5つくらいまで表示
+            legendHTML += `<div style="font-size:${8 * scale}px;display:flex;align-items:center;gap:4px;">
+              <span style="display:inline-block;width:${4 * scale}px;height:${4 * scale}px;background:${PASTEL_COLORS[i]};"></span>
+              <span style="color:white;">${SUBJECTS[i].substring(0,3)}</span>
+            </div>`;
+          }
         });
-        html += '</div>';
-        return html;
+
+        const pieHTML = `<div style="width:${r*2*scale}px; height:${r*2*scale}px; border-radius:50%; background: conic-gradient(${grad.join(',')});"></div>`;
+        return `<div class="widget-render type-piechart" style="display:flex; gap:${8*scale}px; align-items:center;">
+          ${pieHTML}
+          ${legendHTML}</div>
+        </div>`;
       }
 
       case 'schedule': {
@@ -162,8 +179,9 @@
     el.className = 'screen-widget';
     el.id = `widget-${widget.id}`;
     el.dataset.widgetId = widget.id;
-    el.style.left = `${widget.x * SCALE}px`;
-    el.style.top = `${widget.y * SCALE}px`;
+    // ★ 表示サイズに関わらず正しい位置になるよう % 指定に変更
+    el.style.left = `${(widget.x / SCREEN_W) * 100}%`;
+    el.style.top = `${(widget.y / SCREEN_H) * 100}%`;
     el.innerHTML = renderWidgetContent(widget) +
       `<div class="delete-btn" data-delete-id="${widget.id}">✕</div>` +
       `<div class="resize-handle" data-resize-id="${widget.id}"></div>`;
@@ -173,8 +191,8 @@
   function refreshWidget(widget) {
     const el = document.getElementById(`widget-${widget.id}`);
     if (!el) return;
-    el.style.left = `${widget.x * SCALE}px`;
-    el.style.top = `${widget.y * SCALE}px`;
+    el.style.left = `${(widget.x / SCREEN_W) * 100}%`;
+    el.style.top = `${(widget.y / SCREEN_H) * 100}%`;
     el.innerHTML = renderWidgetContent(widget) +
       `<div class="delete-btn" data-delete-id="${widget.id}">✕</div>` +
       `<div class="resize-handle" data-resize-id="${widget.id}"></div>`;
@@ -345,9 +363,18 @@
   (function initPaletteDrag() {
     const cards = document.querySelectorAll('.widget-card[draggable]');
     cards.forEach(card => {
+      // 既存のPC用ドラッグ
       card.addEventListener('dragstart', (e) => {
         e.dataTransfer.setData('widget-type', card.dataset.widgetType);
         e.dataTransfer.effectAllowed = 'copy';
+      });
+
+      // ★ スマホ用：タップしたら真ん中に追加！
+      card.addEventListener('click', (e) => {
+        const type = card.dataset.widgetType;
+        // ちょっとずらして配置する（重ならないように）
+        const offset = (widgets.length % 5) * 10;
+        addWidget(type, 100 + offset, 40 + offset);
       });
     });
 
@@ -410,6 +437,7 @@
     const onPointerMove = (e) => {
       // ★ リサイズ中
       if (resizing) {
+        e.preventDefault(); // ★ スクロール防止
         const deltaX = e.clientX - resizeStartX;
         const newSize = clamp(resizeStartFontSize + Math.round(deltaX / 8), 6, 48);
         widget.fontSize = newSize;
@@ -421,13 +449,18 @@
       }
 
       if (!dragging) return;
+      e.preventDefault(); // ★ スクロール防止
       const screenRect = screenEl.getBoundingClientRect();
-      let newX = Math.round((e.clientX - screenRect.left - offsetX) / SCALE);
-      let newY = Math.round((e.clientY - screenRect.top - offsetY) / SCALE);
+      const currentScaleX = screenRect.width / SCREEN_W;
+      const currentScaleY = screenRect.height / SCREEN_H;
+
+      let newX = Math.round((e.clientX - screenRect.left - offsetX) / currentScaleX);
+      let newY = Math.round((e.clientY - screenRect.top - offsetY) / currentScaleY);
       widget.x = clamp(newX, 0, SCREEN_W - 10);
       widget.y = clamp(newY, 0, SCREEN_H - 5);
-      el.style.left = `${widget.x * SCALE}px`;
-      el.style.top = `${widget.y * SCALE}px`;
+      
+      el.style.left = `${(widget.x / SCREEN_W) * 100}%`;
+      el.style.top = `${(widget.y / SCREEN_H) * 100}%`;
       const propX = document.getElementById('prop-x');
       const propY = document.getElementById('prop-y');
       if (propX) propX.value = widget.x;
@@ -632,17 +665,26 @@
           code += `  canvas.setCursor(${w.x}, ${w.y});\n`;
           code += `  { int m=timerSeconds/60; int s=timerSeconds%60; char b[10]; sprintf(b,"%02d:%02d",m,s); canvas.print(b); }\n\n`;
           break;
-        case 'bargraph':
-          code += `  { int bx=${w.x},by=${w.y}; int mx=0;\n`;
-          code += `    for(int i=0;i<SUBJECT_COUNT;i++) if(localSeconds[i]>mx)mx=localSeconds[i];\n`;
-          code += `    if(mx==0)mx=1;\n`;
-          code += `    for(int i=0;i<SUBJECT_COUNT;i++){\n`;
-          code += `      canvas.setFont(&fonts::lgfxJapanGothicP_8); canvas.setTextSize(1); canvas.setTextColor(WHITE);\n`;
-          code += `      canvas.setCursor(bx,by); canvas.print(subjects[i]);\n`;
-          code += `      int w=(int)(((float)localSeconds[i]/(float)mx)*70.0);\n`;
-          code += `      if(w>70)w=70; if(localSeconds[i]>0&&w==0)w=1;\n`;
-          code += `      canvas.fillRect(bx+55,by+2,w,4,pastelColors[i]); by+=12;\n`;
-          code += `  }}\n\n`;
+        case 'piechart':
+          code += `  { int r=${Math.max(10, w.fontSize*2)}; int px=${w.x} + r, py=${w.y} + r;\n`;
+          code += `    int total = 0; for(int i=0;i<SUBJECT_COUNT;i++) total+=localSeconds[i];\n`;
+          code += `    if (total == 0) { canvas.fillCircle(px, py, r, DARKGREY); }\n`;
+          code += `    else { float startDeg = 0; int ly = ${w.y};\n`;
+          code += `      for(int i=0;i<SUBJECT_COUNT;i++) {\n`;
+          code += `        if(localSeconds[i]==0) continue;\n`;
+          code += `        float deg = ((float)localSeconds[i]/total) * 360.0;\n`;
+          code += `        canvas.fillArc(px, py, 0, r, startDeg, startDeg+deg, pastelColors[i]);\n`;
+          code += `        // 凡例を描画 (右側)\n`;
+          code += `        if (ly < ${w.y} + (r*2) - 5) {\n`;
+          code += `          canvas.fillRect(px+r+8, ly, 6, 6, pastelColors[i]);\n`;
+          code += `          canvas.setFont(&fonts::lgfxJapanGothicP_8); canvas.setTextSize(1); canvas.setTextColor(WHITE, BLACK);\n`;
+          code += `          canvas.setCursor(px+r+16, ly-2); canvas.print(subjectsShort[i]);\n`;
+          code += `          ly+=10;\n`;
+          code += `        }\n`;
+          code += `        startDeg += deg;\n`;
+          code += `      }\n`;
+          code += `    }\n`;
+          code += `  }\n\n`;
           break;
         case 'schedule': {
           const lines = w.content.split('\n');

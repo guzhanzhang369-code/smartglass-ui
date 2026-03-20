@@ -353,6 +353,7 @@ body::before {
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(60, 70, 100, 0.3);
+  touch-action: none; /* ★ スマホでなぞったときのスクロールを防止 */
   /* Grid lines for positioning guidance */
   background-image:
     linear-gradient(rgba(108, 140, 255, 0.03) 1px, transparent 1px),
@@ -368,6 +369,7 @@ body::before {
   border-radius: 4px;
   transition: border-color 0.15s ease;
   user-select: none;
+  touch-action: none; /* ★ スマホでウィジェットを触ったときの画面ズレ防止 */
 }
 
 .screen-widget:hover {
@@ -708,7 +710,8 @@ body::before {
   .sidebar {
     border-right: none;
     border-bottom: 1px solid var(--border-glass);
-    max-height: 200px;
+    max-height: 300px; /* ★ 高さを広げる */
+    overflow-y: auto;  /* ★ スクロールできるようにする */
   }
 
   .sidebar-section {
