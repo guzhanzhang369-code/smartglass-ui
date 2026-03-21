@@ -80,11 +80,11 @@
       content: ''
     },
     schedule: {
-      label: '計画表',
+      label: '予定',
       x: 10, y: 10,
-      fontSize: 11,
+      fontSize: 16,
       color: '#E0E0E0',
-      content: '1限 数学\n2限 英語\n3限 理科'
+      content: '12:30 出発\n13:40 到着'
     },
     weather: {
       label: '天気',
@@ -98,7 +98,7 @@
   const TYPE_LABELS = {
     clock: '🕐 時計', text: '✏️ テキスト', study: '📚 勉強タイマー',
     timer: '⏱️ タイマー', piechart: '🍩 円グラフ',
-    schedule: '📅 計画表', weather: '🌤️ 天気'
+    schedule: '📅 予定', weather: '🌤️ 天気'
   };
 
   // =====================================================================
@@ -162,8 +162,42 @@
       }
 
       case 'schedule': {
-        const lines = w.content.split('\n').map(l => escapeHtml(l)).join('<br>');
-        return `<div class="widget-render type-schedule" style="font-size:${w.fontSize * scale}px; color:${w.color}; line-height:1.7;">${lines}</div>`;
+        const now = new Date();
+        const nowMins = now.getHours() * 60 + now.getMinutes();
+        let nextMins = 999999;
+        let nextEvt = '';
+        
+        w.content.replace(/　/g, ' ').split('\n').forEach(line => {
+          line = line.trim();
+          if (!line) return;
+          const colonIdx = line.indexOf(':');
+          const spaceIdx = line.indexOf(' ', colonIdx);
+          if (colonIdx > 0 && spaceIdx > colonIdx) {
+            let hh = parseInt(line.substring(0, colonIdx));
+            let mm = parseInt(line.substring(colonIdx + 1, spaceIdx));
+            if (!isNaN(hh) && !isNaN(mm)) {
+              let evtName = line.substring(spaceIdx + 1).trim();
+              let evtMins = hh * 60 + mm;
+              if (evtMins >= nowMins && evtMins < nextMins) {
+                nextMins = evtMins;
+                nextEvt = evtName;
+              }
+            }
+          }
+        });
+        
+        let dispText = "予定なし";
+        if (nextMins !== 999999) {
+          const diffMins = nextMins - nowMins;
+          if (diffMins >= 60) {
+            const h = Math.floor(diffMins / 60);
+            dispText = escapeHtml(nextEvt) + "まであと" + h + "時間";
+          } else {
+            dispText = escapeHtml(nextEvt) + "まであと" + diffMins + "分";
+          }
+        }
+        
+        return `<div class="widget-render type-schedule" style="font-size:${w.fontSize * scale}px; color:${w.color}; white-space:nowrap;">${dispText}</div>`;
       }
 
       case 'weather':
@@ -687,13 +721,38 @@
           code += `  }\n\n`;
           break;
         case 'schedule': {
-          const lines = w.content.split('\n');
-          code += `  canvas.setFont(&fonts::lgfxJapanGothicP_8); canvas.setTextSize(1);\n`;
-          code += `  canvas.setTextColor(0x${colorToRGB565Hex(w.color)});\n`;
-          lines.forEach((line, i) => {
-            code += `  canvas.setCursor(${w.x}, ${w.y + i * 14}); canvas.print("${escapeCppString(line)}");\n`;
-          });
-          code += '\n';
+          code += `  setJapaneseFont(${w.fontSize});\n`;
+          code += `  canvas.setTextColor(0x${colorToRGB565Hex(w.color)}, BLACK);\n`;
+          code += `  {\n`;
+          code += `    time_t nowT = time(nullptr);\n`;
+          code += `    struct tm* t = localtime(&nowT);\n`;
+          code += `    int nowM = t->tm_hour * 60 + t->tm_min;\n`;
+          code += `    int nextM = 999999; String nextE = "";\n`;
+          code += `    String txt = "${escapeCppString(w.content)}"; txt.replace("　", " ");\n`;
+          code += `    int start = 0;\n`;
+          code += `    for (int c = 0; c <= (int)txt.length(); c++) {\n`;
+          code += `      if (c == (int)txt.length() || txt[c] == '\\n') {\n`;
+          code += `        String line = txt.substring(start, c); line.trim();\n`;
+          code += `        if (line.length() > 0) {\n`;
+          code += `          int cI = line.indexOf(':'); int sI = line.indexOf(' ', cI);\n`;
+          code += `          if (cI > 0 && sI > cI) {\n`;
+          code += `            int hh = line.substring(0, cI).toInt();\n`;
+          code += `            int mm = line.substring(cI+1, sI).toInt();\n`;
+          code += `            int evtM = hh * 60 + mm;\n`;
+          code += `            if (evtM >= nowM && evtM < nextM) { nextM = evtM; nextE = line.substring(sI+1); nextE.trim(); }\n`;
+          code += `          }\n`;
+          code += `        }\n`;
+          code += `        start = c + 1;\n`;
+          code += `      }\n`;
+          code += `    }\n`;
+          code += `    String dText = "予定なし";\n`;
+          code += `    if (nextM != 999999) {\n`;
+          code += `      int dMin = nextM - nowM;\n`;
+          code += `      if (dMin >= 60) { dText = nextE + "まであと" + String(dMin/60) + "時間"; }\n`;
+          code += `      else { dText = nextE + "まであと" + String(dMin) + "分"; }\n`;
+          code += `    }\n`;
+          code += `    canvas.setCursor(${w.x}, ${w.y}); canvas.print(dText);\n`;
+          code += `  }\n\n`;
           break;
         }
         case 'weather':
