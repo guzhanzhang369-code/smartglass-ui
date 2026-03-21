@@ -37,6 +37,11 @@
     '#FFFFB4', '#C8FFFF', '#FFC8FF', '#C8FFDC', '#FFC8DC', '#DCDCFF'
   ];
 
+  function getToday() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
   const SUBJECTS = [
     '代数', '幾何', '理科1', '理科2', '歴史', '地理',
     '現代文', '日本語表現', '英語A', '英語B', '基礎英語'
@@ -56,7 +61,7 @@
       x: 10, y: 60,
       fontSize: 16,
       color: '#E0E0E0',
-      content: 'Hello!'
+      content: ''
     },
     study: {
       label: '勉強タイマー',
@@ -70,7 +75,7 @@
       x: 140, y: 90,
       fontSize: 24,
       color: '#34D399',
-      content: '05:00'
+      content: '00:00'
     },
     piechart: {
       label: '円グラフ',
@@ -84,7 +89,7 @@
       x: 10, y: 10,
       fontSize: 16,
       color: '#E0E0E0',
-      content: '12:30 出発\n13:40 到着'
+      content: ''
     },
     weather: {
       label: '天気',
@@ -117,8 +122,10 @@
         const mm = String(now.getMinutes()).padStart(2, '0');
         return `<div class="widget-render type-clock" style="font-size:${w.fontSize * scale}px; color:${w.color};">${hh}:${mm}</div>`;
       }
-      case 'text':
-        return `<div class="widget-render type-text" style="font-size:${w.fontSize * scale}px; color:${w.color};">${escapeHtml(w.content)}</div>`;
+      case 'text': {
+        const dispText = w.content ? escapeHtml(w.content) : '<span style="opacity:0.6;">テキストを入力してください</span>';
+        return `<div class="widget-render type-text" style="font-size:${w.fontSize * scale}px; color:${w.color};">${dispText}</div>`;
+      }
 
       case 'study': {
         // ★ 教科別勉強タイマー（プレビュー）
@@ -162,39 +169,66 @@
       }
 
       case 'schedule': {
+        if (!w.content || w.content.trim() === '') {
+          return `<div class="widget-render type-schedule" style="font-size:${w.fontSize * scale}px; color:${w.color};"><span style="opacity:0.6;">予定を書いてください</span></div>`;
+        }
+
         const now = new Date();
-        const nowMins = now.getHours() * 60 + now.getMinutes();
-        let nextMins = 999999;
+        const nowMs = now.getTime();
+        let nextMs = Infinity;
         let nextEvt = '';
         
         w.content.replace(/　/g, ' ').split('\n').forEach(line => {
           line = line.trim();
           if (!line) return;
-          const colonIdx = line.indexOf(':');
-          const spaceIdx = line.indexOf(' ', colonIdx);
-          if (colonIdx > 0 && spaceIdx > colonIdx) {
-            let hh = parseInt(line.substring(0, colonIdx));
-            let mm = parseInt(line.substring(colonIdx + 1, spaceIdx));
-            if (!isNaN(hh) && !isNaN(mm)) {
-              let evtName = line.substring(spaceIdx + 1).trim();
-              let evtMins = hh * 60 + mm;
-              if (evtMins < nowMins) evtMins += 1440; // 過ぎた予定は明日とみなす
-              if (evtMins < nextMins) {
-                nextMins = evtMins;
-                nextEvt = evtName;
-              }
-            }
+          
+          let parts = line.split(' ');
+          let dateStr = "";
+          let timeStr = "";
+          let textStr = "";
+          
+          if (parts[0] && parts[0].includes('-')) {
+             dateStr = parts[0];
+             timeStr = parts[1] || "";
+             textStr = parts.slice(2).join(' ');
+          } else if (parts[0] && parts[0].includes(':')) {
+             dateStr = getToday();
+             timeStr = parts[0];
+             textStr = parts.slice(1).join(' ');
+          } else {
+             textStr = line;
+          }
+
+          if (dateStr && timeStr && textStr) {
+             let targetDate = new Date(`${dateStr}T${timeStr}:00`);
+             if (!isNaN(targetDate.getTime())) {
+               let targetMs = targetDate.getTime();
+               if (targetMs > nowMs) {
+                  if (targetMs < nextMs) {
+                     nextMs = targetMs;
+                     nextEvt = textStr;
+                  }
+               }
+             }
           }
         });
         
         let dispText = "予定なし";
-        if (nextMins !== 999999) {
-          const diffMins = nextMins - nowMins;
-          if (diffMins >= 60) {
-            const h = Math.floor(diffMins / 60);
-            dispText = escapeHtml(nextEvt) + "まであと" + h + "時間";
+        if (nextMs !== Infinity) {
+          const diffMs = nextMs - nowMs;
+          const diffHours = diffMs / (1000 * 60 * 60);
+          
+          if (diffHours >= 24) {
+             const tDate = new Date(nextMs);
+             dispText = `${tDate.getMonth()+1}月${tDate.getDate()}日 ${escapeHtml(nextEvt)}`;
           } else {
-            dispText = escapeHtml(nextEvt) + "まであと" + diffMins + "分";
+             const diffMins = Math.floor(diffMs / (1000 * 60));
+             if (diffMins >= 60) {
+               const h = Math.floor(diffMins / 60);
+               dispText = escapeHtml(nextEvt) + "まであと" + h + "時間";
+             } else {
+               dispText = escapeHtml(nextEvt) + "まであと" + diffMins + "分";
+             }
           }
         }
         
@@ -336,25 +370,33 @@
       
       const lines = widget.content.split('\n');
       lines.forEach((line) => {
+        let dateStr = "";
         let timeStr = "";
         let textStr = "";
         line = line.trim();
         if (line) {
-          const spaceIdx = line.indexOf(' ');
-          if (spaceIdx > 0) {
-            timeStr = line.substring(0, spaceIdx);
-            textStr = line.substring(spaceIdx + 1);
+          const parts = line.split(' ');
+          if (parts[0] && parts[0].includes('-')) {
+             dateStr = parts[0];
+             timeStr = parts[1] || "";
+             textStr = parts.slice(2).join(' ');
+          } else if (parts[0] && parts[0].includes(':')) {
+             dateStr = getToday();
+             timeStr = parts[0];
+             textStr = parts.slice(1).join(' ');
           } else {
-            textStr = line;
+             textStr = line;
           }
         }
+
         if (timeStr && timeStr.length < 5 && timeStr.includes(':')) {
-           const parts = timeStr.split(':');
-           timeStr = parts[0].padStart(2, '0') + ':' + parts[1].padStart(2, '0');
+           const timeParts = timeStr.split(':');
+           timeStr = timeParts[0].padStart(2, '0') + ':' + timeParts[1].padStart(2, '0');
         }
 
         html += `
             <div class="schedule-row" style="display:flex; gap:4px; align-items:center;">
+              <input type="date" class="prop-input schedule-date-input" value="${dateStr}" style="width:auto; padding:6px; flex-shrink:0;">
               <input type="time" class="prop-input schedule-time-input" value="${timeStr}" style="width:auto; padding:6px; flex-shrink:0;">
               <input type="text" class="prop-input schedule-text-input" value="${escapeHtml(textStr)}" placeholder="予定名" style="flex:1; padding:6px; min-width:0;">
               <button class="btn btn-danger schedule-del-btn" style="padding:4px 8px; flex-shrink:0; font-size:12px;">✕</button>
@@ -410,10 +452,11 @@
         const rows = document.querySelectorAll('.schedule-row');
         let newContent = [];
         rows.forEach(row => {
+          const dateVal = row.querySelector('.schedule-date-input').value;
           const timeVal = row.querySelector('.schedule-time-input').value;
           const textVal = row.querySelector('.schedule-text-input').value.trim();
-          if (timeVal || textVal) {
-            newContent.push(`${timeVal || '00:00'} ${textVal || '予定'}`);
+          if (dateVal || timeVal || textVal) {
+            newContent.push(`${dateVal || getToday()} ${timeVal || '00:00'} ${textVal || '予定'}`);
           }
         });
         widget.content = newContent.join('\n');
@@ -424,7 +467,7 @@
       
       if (rowsContainer) {
         rowsContainer.addEventListener('input', (e) => {
-          if (e.target.classList.contains('schedule-time-input') || e.target.classList.contains('schedule-text-input')) {
+          if (e.target.classList.contains('schedule-date-input') || e.target.classList.contains('schedule-time-input') || e.target.classList.contains('schedule-text-input')) {
             updateScheduleContent();
           }
         });
@@ -443,6 +486,7 @@
           newRow.className = 'schedule-row';
           newRow.style.cssText = 'display:flex; gap:4px; align-items:center;';
           newRow.innerHTML = `
+            <input type="date" class="prop-input schedule-date-input" value="${getToday()}" style="width:auto; padding:6px; flex-shrink:0;">
             <input type="time" class="prop-input schedule-time-input" value="12:00" style="width:auto; padding:6px; flex-shrink:0;">
             <input type="text" class="prop-input schedule-text-input" value="" placeholder="予定名" style="flex:1; padding:6px; min-width:0;">
             <button class="btn btn-danger schedule-del-btn" style="padding:4px 8px; flex-shrink:0; font-size:12px;">✕</button>
@@ -758,11 +802,14 @@
           code += `  { String t = getTimestamp().substring(11, 16); canvas.print(t); }\n\n`;
           break;
         case 'text':
-          code += `  canvas.setFont(&fonts::lgfxJapanGothicP_8);\n`;
-          code += `  canvas.setTextSize(${Math.max(1, Math.round(w.fontSize / 8))});\n`;
-          code += `  canvas.setTextColor(0x${colorToRGB565Hex(w.color)});\n`;
+          code += `  setJapaneseFont(${w.fontSize});\n`;
+          code += `  canvas.setTextColor(0x${colorToRGB565Hex(w.color)}, BLACK);\n`;
           code += `  canvas.setCursor(${w.x}, ${w.y});\n`;
-          code += `  canvas.print("${escapeCppString(w.content)}");\n\n`;
+          code += `  if (String("${escapeCppString(w.content)}").length() == 0) {\n`;
+          code += `    canvas.print("テキストを入力してください");\n`;
+          code += `  } else {\n`;
+          code += `    canvas.print("${escapeCppString(w.content)}");\n`;
+          code += `  }\n\n`;
           break;
         case 'study':
           code += `  // 教科別勉強タイマー（Aボタン長押しで開始/停止）\n`;
@@ -808,32 +855,55 @@
           code += `  canvas.setTextColor(0x${colorToRGB565Hex(w.color)}, BLACK);\n`;
           code += `  {\n`;
           code += `    time_t nowT = time(nullptr);\n`;
-          code += `    struct tm* t = localtime(&nowT);\n`;
-          code += `    int nowM = t->tm_hour * 60 + t->tm_min;\n`;
-          code += `    int nextM = 999999; String nextE = "";\n`;
+          code += `    unsigned long nextUnix = -1; String nextE = "";\n`;
           code += `    String txt = "${escapeCppString(w.content)}"; txt.replace("　", " ");\n`;
           code += `    int start = 0;\n`;
           code += `    for (int c = 0; c <= (int)txt.length(); c++) {\n`;
           code += `      if (c == (int)txt.length() || txt[c] == '\\n') {\n`;
           code += `        String line = txt.substring(start, c); line.trim();\n`;
           code += `        if (line.length() > 0) {\n`;
-          code += `          int cI = line.indexOf(':'); int sI = line.indexOf(' ', cI);\n`;
-          code += `          if (cI > 0 && sI > cI) {\n`;
-          code += `            int hh = line.substring(0, cI).toInt();\n`;
-          code += `            int mm = line.substring(cI+1, sI).toInt();\n`;
-          code += `            int evtM = hh * 60 + mm;\n`;
-          code += `            if (evtM < nowM) evtM += 1440;\n`;
-          code += `            if (evtM < nextM) { nextM = evtM; nextE = line.substring(sI+1); nextE.trim(); }\n`;
+          code += `          int firstSpace = line.indexOf(' ');\n`;
+          code += `          if (firstSpace > 0) {\n`;
+          code += `            String token1 = line.substring(0, firstSpace);\n`;
+          code += `            String token2 = ""; String evtName = "";\n`;
+          code += `            int secondSpace = line.indexOf(' ', firstSpace + 1);\n`;
+          code += `            if (token1.indexOf('-') > 0 && secondSpace > 0) {\n`;
+          code += `               token2 = line.substring(firstSpace + 1, secondSpace);\n`;
+          code += `               evtName = line.substring(secondSpace + 1);\n`;
+          code += `            } else if (token1.indexOf(':') > 0) {\n`;
+          code += `               token2 = token1; token1 = getDate(); evtName = line.substring(firstSpace + 1);\n`;
+          code += `            }\n`;
+          code += `            if (token2.indexOf(':') > 0) {\n`;
+          code += `               int yyyy = token1.substring(0, 4).toInt();\n`;
+          code += `               int mon = token1.substring(5, 7).toInt();\n`;
+          code += `               int dd = token1.substring(8, 10).toInt();\n`;
+          code += `               int hh = token2.substring(0, 2).toInt();\n`;
+          code += `               int mm = token2.substring(3, 5).toInt();\n`;
+          code += `               struct tm evtTm; evtTm.tm_year = yyyy - 1900; evtTm.tm_mon = mon - 1;\n`;
+          code += `               evtTm.tm_mday = dd; evtTm.tm_hour = hh; evtTm.tm_min = mm; evtTm.tm_sec = 0; evtTm.tm_isdst = -1;\n`;
+          code += `               time_t evtTime = mktime(&evtTm);\n`;
+          code += `               if (evtTime > nowT && (nextUnix == (unsigned long)-1 || (unsigned long)evtTime < nextUnix)) {\n`;
+          code += `                   nextUnix = (unsigned long)evtTime; nextE = evtName; nextE.trim();\n`;
+          code += `               }\n`;
+          code += `            }\n`;
           code += `          }\n`;
           code += `        }\n`;
           code += `        start = c + 1;\n`;
           code += `      }\n`;
           code += `    }\n`;
-          code += `    String dText = "予定なし";\n`;
-          code += `    if (nextM != 999999) {\n`;
-          code += `      int dMin = nextM - nowM;\n`;
-          code += `      if (dMin >= 60) { dText = nextE + "まであと" + String(dMin/60) + "時間"; }\n`;
-          code += `      else { dText = nextE + "まであと" + String(dMin) + "分"; }\n`;
+          code += `    String dText = "予定を書いてください";\n`;
+          code += `    if (txt.length() > 0) {\n`;
+          code += `      if (nextUnix != (unsigned long)-1) {\n`;
+          code += `        unsigned long diffSec = nextUnix - (unsigned long)nowT;\n`;
+          code += `        if (diffSec >= 24 * 3600) {\n`;
+          code += `          struct tm* nextTm = localtime((time_t*)&nextUnix);\n`;
+          code += `          dText = String(nextTm->tm_mon + 1) + "月" + String(nextTm->tm_mday) + "日 " + nextE;\n`;
+          code += `        } else {\n`;
+          code += `          int dMin = diffSec / 60;\n`;
+          code += `          if (dMin >= 60) { dText = nextE + "まであと" + String(dMin/60) + "時間"; }\n`;
+          code += `          else { dText = nextE + "まであと" + String(dMin) + "分"; }\n`;
+          code += `        }\n`;
+          code += `      } else { dText = "予定なし"; }\n`;
           code += `    }\n`;
           code += `    canvas.setCursor(${w.x}, ${w.y}); canvas.print(dText);\n`;
           code += `  }\n\n`;
