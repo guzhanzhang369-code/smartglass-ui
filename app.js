@@ -178,7 +178,8 @@
             if (!isNaN(hh) && !isNaN(mm)) {
               let evtName = line.substring(spaceIdx + 1).trim();
               let evtMins = hh * 60 + mm;
-              if (evtMins >= nowMins && evtMins < nextMins) {
+              if (evtMins < nowMins) evtMins += 1440; // 過ぎた予定は明日とみなす
+              if (evtMins < nextMins) {
                 nextMins = evtMins;
                 nextEvt = evtName;
               }
@@ -327,14 +328,48 @@
       </div>`;
 
     // Content (for text, timer, schedule, weather)
-    if (['text', 'timer', 'schedule', 'weather'].includes(widget.type)) {
-      const isMultiline = widget.type === 'schedule';
+    if (widget.type === 'schedule') {
+      html += `
+        <div class="prop-group">
+          <div class="prop-label">予定</div>
+          <div id="schedule-rows" style="display:flex; flex-direction:column; gap:6px;">`;
+      
+      const lines = widget.content.split('\n');
+      lines.forEach((line) => {
+        let timeStr = "";
+        let textStr = "";
+        line = line.trim();
+        if (line) {
+          const spaceIdx = line.indexOf(' ');
+          if (spaceIdx > 0) {
+            timeStr = line.substring(0, spaceIdx);
+            textStr = line.substring(spaceIdx + 1);
+          } else {
+            textStr = line;
+          }
+        }
+        if (timeStr && timeStr.length < 5 && timeStr.includes(':')) {
+           const parts = timeStr.split(':');
+           timeStr = parts[0].padStart(2, '0') + ':' + parts[1].padStart(2, '0');
+        }
+
+        html += `
+            <div class="schedule-row" style="display:flex; gap:4px; align-items:center;">
+              <input type="time" class="prop-input schedule-time-input" value="${timeStr}" style="width:auto; padding:6px; flex-shrink:0;">
+              <input type="text" class="prop-input schedule-text-input" value="${escapeHtml(textStr)}" placeholder="予定名" style="flex:1; padding:6px; min-width:0;">
+              <button class="btn btn-danger schedule-del-btn" style="padding:4px 8px; flex-shrink:0; font-size:12px;">✕</button>
+            </div>`;
+      });
+      
+      html += `
+          </div>
+          <button class="btn" id="schedule-add-btn" style="width:100%; margin-top:8px; justify-content:center; padding:6px;">＋ 予定を追加</button>
+        </div>`;
+    } else if (['text', 'timer', 'weather'].includes(widget.type)) {
       html += `
         <div class="prop-group">
           <div class="prop-label">内容</div>
-          ${isMultiline
-            ? `<textarea class="prop-input" id="prop-content" rows="4" style="resize:vertical;">${escapeHtml(widget.content)}</textarea>`
-            : `<input type="text" class="prop-input" id="prop-content" value="${escapeHtml(widget.content)}">`}
+          <input type="text" class="prop-input" id="prop-content" value="${escapeHtml(widget.content)}">
         </div>`;
     }
 
@@ -370,10 +405,58 @@
       widget.fontSize = clamp(parseInt(propFontSize.value) || 8, 6, 48);
       refreshWidget(widget);
     });
-    if (propContent) propContent.addEventListener('input', () => {
-      widget.content = propContent.value;
-      refreshWidget(widget);
-    });
+    if (widget.type === 'schedule') {
+      const updateScheduleContent = () => {
+        const rows = document.querySelectorAll('.schedule-row');
+        let newContent = [];
+        rows.forEach(row => {
+          const timeVal = row.querySelector('.schedule-time-input').value;
+          const textVal = row.querySelector('.schedule-text-input').value.trim();
+          if (timeVal || textVal) {
+            newContent.push(`${timeVal || '00:00'} ${textVal || '予定'}`);
+          }
+        });
+        widget.content = newContent.join('\n');
+        refreshWidget(widget);
+      };
+
+      const rowsContainer = document.getElementById('schedule-rows');
+      
+      if (rowsContainer) {
+        rowsContainer.addEventListener('input', (e) => {
+          if (e.target.classList.contains('schedule-time-input') || e.target.classList.contains('schedule-text-input')) {
+            updateScheduleContent();
+          }
+        });
+        rowsContainer.addEventListener('click', (e) => {
+          if (e.target.classList.contains('schedule-del-btn')) {
+            e.target.closest('.schedule-row').remove();
+            updateScheduleContent();
+          }
+        });
+      }
+
+      const addBtn = document.getElementById('schedule-add-btn');
+      if (addBtn) {
+        addBtn.addEventListener('click', () => {
+          const newRow = document.createElement('div');
+          newRow.className = 'schedule-row';
+          newRow.style.cssText = 'display:flex; gap:4px; align-items:center;';
+          newRow.innerHTML = `
+            <input type="time" class="prop-input schedule-time-input" value="12:00" style="width:auto; padding:6px; flex-shrink:0;">
+            <input type="text" class="prop-input schedule-text-input" value="" placeholder="予定名" style="flex:1; padding:6px; min-width:0;">
+            <button class="btn btn-danger schedule-del-btn" style="padding:4px 8px; flex-shrink:0; font-size:12px;">✕</button>
+          `;
+          rowsContainer.appendChild(newRow);
+          updateScheduleContent();
+        });
+      }
+    } else if (propContent) {
+      propContent.addEventListener('input', () => {
+        widget.content = propContent.value;
+        refreshWidget(widget);
+      });
+    }
 
     document.querySelectorAll('.prop-color-swatch').forEach(swatch => {
       swatch.addEventListener('click', () => {
@@ -739,7 +822,8 @@
           code += `            int hh = line.substring(0, cI).toInt();\n`;
           code += `            int mm = line.substring(cI+1, sI).toInt();\n`;
           code += `            int evtM = hh * 60 + mm;\n`;
-          code += `            if (evtM >= nowM && evtM < nextM) { nextM = evtM; nextE = line.substring(sI+1); nextE.trim(); }\n`;
+          code += `            if (evtM < nowM) evtM += 1440;\n`;
+          code += `            if (evtM < nextM) { nextM = evtM; nextE = line.substring(sI+1); nextE.trim(); }\n`;
           code += `          }\n`;
           code += `        }\n`;
           code += `        start = c + 1;\n`;
