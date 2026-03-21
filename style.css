@@ -179,7 +179,7 @@ body::before {
   display: grid;
   grid-template-columns: 280px 1fr;
   gap: 0;
-  height: calc(100vh - 69px);
+  height: 100vh;
 }
 
 /* ===== Sidebar (Widget Palette) ===== */

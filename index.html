@@ -8,27 +8,9 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Site Favicon from Emoji -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👓</text></svg>">
 
-  <!-- ===== Header ===== -->
-  <header class="header">
-    <div class="header-logo">
-      <div class="header-logo-icon">👓</div>
-      <div>
-        <h1>SmartGlass Customizer</h1>
-        <span>M5StickC Plus 画面エディター</span>
-      </div>
-    </div>
-    <div class="header-actions">
-      <button class="btn" id="btn-reset" title="リセット">
-        <span class="btn-icon">🗑️</span>
-        <span class="btn-text">リセット</span>
-      </button>
-      <button class="btn btn-primary" id="btn-export" title="コード生成">
-        <span class="btn-icon">⚡</span>
-        <span class="btn-text">コード生成</span>
-      </button>
-    </div>
-  </header>
 
   <!-- ===== Main Layout ===== -->
   <div class="main-layout">
@@ -138,8 +120,15 @@
 
   </div>
 
-  <!-- ===== Properties Toggle Button ===== -->
-  <button class="props-toggle-btn" id="props-toggle-btn" title="プロパティパネルの表示/非表示">⚙️</button>
+  <!-- ===== Floating Action Buttons (Right Bottom) ===== -->
+  <div class="floating-actions" style="position: fixed; bottom: 16px; right: 16px; display: flex; gap: 12px; z-index: 95; align-items: flex-end;">
+    <!-- リセットボタン -->
+    <button class="btn btn-danger" id="btn-reset" title="すべてリセット" style="border-radius: 50%; width: 44px; height: 44px; padding: 0; display: flex; justify-content: center; align-items: center; box-shadow: var(--shadow-card);">
+      <span class="btn-icon" style="margin: 0; font-size: 1.2rem;">🗑️</span>
+    </button>
+    <!-- プロパティパネルの表示/非表示 -->
+    <button class="props-toggle-btn" id="props-toggle-btn" title="プロパティパネル" style="position: static; box-shadow: var(--shadow-card);">⚙️</button>
+  </div>
 
   <!-- ===== Properties Panel ===== -->
   <div class="properties-panel" id="properties-panel">

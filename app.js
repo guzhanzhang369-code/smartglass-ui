@@ -395,11 +395,13 @@
         }
 
         html += `
-            <div class="schedule-row" style="display:flex; gap:4px; align-items:center;">
-              <input type="date" class="prop-input schedule-date-input" value="${dateStr}" style="width:auto; padding:6px; flex-shrink:0;">
-              <input type="time" class="prop-input schedule-time-input" value="${timeStr}" style="width:auto; padding:6px; flex-shrink:0;">
-              <input type="text" class="prop-input schedule-text-input" value="${escapeHtml(textStr)}" placeholder="予定名" style="flex:1; padding:6px; min-width:0;">
-              <button class="btn btn-danger schedule-del-btn" style="padding:4px 8px; flex-shrink:0; font-size:12px;">✕</button>
+            <div class="schedule-row" style="display:flex; gap:6px; align-items:flex-start;">
+              <div style="display:flex; flex-direction:column; gap:4px; flex-shrink:0;">
+                <input type="date" class="prop-input schedule-date-input" value="${dateStr}" style="width:100px; padding:4px; font-size:10px;">
+                <input type="time" class="prop-input schedule-time-input" value="${timeStr}" style="width:100px; padding:4px; font-size:10px;">
+              </div>
+              <textarea class="prop-input schedule-text-input" placeholder="予定名" style="flex:1; padding:6px; font-size:12px; resize:vertical; min-height:52px;">${escapeHtml(textStr)}</textarea>
+              <button class="btn btn-danger schedule-del-btn" style="padding:0; flex-shrink:0; font-size:14px; width:26px; height:26px; border-radius:50%; display:flex; justify-content:center; align-items:center;">✕</button>
             </div>`;
       });
       
@@ -484,12 +486,14 @@
         addBtn.addEventListener('click', () => {
           const newRow = document.createElement('div');
           newRow.className = 'schedule-row';
-          newRow.style.cssText = 'display:flex; gap:4px; align-items:center;';
+          newRow.style.cssText = 'display:flex; gap:6px; align-items:flex-start;';
           newRow.innerHTML = `
-            <input type="date" class="prop-input schedule-date-input" value="${getToday()}" style="width:auto; padding:6px; flex-shrink:0;">
-            <input type="time" class="prop-input schedule-time-input" value="12:00" style="width:auto; padding:6px; flex-shrink:0;">
-            <input type="text" class="prop-input schedule-text-input" value="" placeholder="予定名" style="flex:1; padding:6px; min-width:0;">
-            <button class="btn btn-danger schedule-del-btn" style="padding:4px 8px; flex-shrink:0; font-size:12px;">✕</button>
+            <div style="display:flex; flex-direction:column; gap:4px; flex-shrink:0;">
+              <input type="date" class="prop-input schedule-date-input" value="${getToday()}" style="width:100px; padding:4px; font-size:10px;">
+              <input type="time" class="prop-input schedule-time-input" value="12:00" style="width:100px; padding:4px; font-size:10px;">
+            </div>
+            <textarea class="prop-input schedule-text-input" placeholder="予定名" style="flex:1; padding:6px; font-size:12px; resize:vertical; min-height:52px;"></textarea>
+            <button class="btn btn-danger schedule-del-btn" style="padding:0; flex-shrink:0; font-size:14px; width:26px; height:26px; border-radius:50%; display:flex; justify-content:center; align-items:center;">✕</button>
           `;
           rowsContainer.appendChild(newRow);
           updateScheduleContent();
@@ -655,20 +659,19 @@
   });
 
   // =====================================================================
-  // Header Buttons
+  // Action Buttons
   // =====================================================================
 
-  document.getElementById('btn-reset').addEventListener('click', () => {
-    if (widgets.length === 0) return;
-    if (confirm('すべてのウィジェットをリセットしますか？')) {
-      [...widgets].forEach(w => removeWidget(w.id));
-      showToast('リセットしました');
-    }
-  });
-
-  document.getElementById('btn-export').addEventListener('click', () => {
-    exportCode();
-  });
+  const btnReset = document.getElementById('btn-reset');
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      if (widgets.length === 0) return;
+      if (confirm('すべてのウィジェットをリセットしますか？')) {
+        [...widgets].forEach(w => removeWidget(w.id));
+        showToast('リセットしました');
+      }
+    });
+  }
 
   // ===== プロパティパネル トグルボタン =====
   propsToggleBtn.addEventListener('click', () => {
@@ -730,19 +733,21 @@
     }
   });
 
-  // ★ レイアウト送信ボタン（即時プッシュ！）
+  // ★ レイアウト送信ボタン（即時プッシュ ＆ 自動コード生成）
   document.getElementById('btn-send').addEventListener('click', async () => {
-    m5stickIP = ipInput.value.trim();
-    if (!m5stickIP) {
-      showToast('IPアドレスを入力してください');
-      return;
-    }
     if (widgets.length === 0) {
       showToast('ウィジェットがありません');
       return;
     }
+    
+    exportCode(true); // 送信した時点で自動生成＆コピー
 
-    // ウィジェット一覧をJSONに変換
+    m5stickIP = ipInput.value.trim();
+    if (!m5stickIP) {
+      showToast('✅ C++コードをコピーしました（M5Stickへの送信はIP未指定のためスキップ）');
+      return;
+    }
+
     const layoutData = {
       widgets: widgets.map(w => ({
         type: w.type,
@@ -766,22 +771,22 @@
         isConnected = true;
         connectStatus.textContent = `✅ 送信成功！ (${data.widgets}個のウィジェット)`;
         connectStatus.className = 'connect-status connected';
-        showToast(`🚀 レイアウトをM5Stickに送信しました！（${data.widgets}個）`);
+        showToast(`🚀 送信成功＆C++コードをクリップボードにコピーしました！`);
       }
     } catch (err) {
       connectStatus.textContent = '❌ 送信失敗 – 接続を確認してください';
       connectStatus.className = 'connect-status error';
-      showToast('送信に失敗しました');
+      showToast('コードはコピーしましたが、M5Stickへの送信に失敗しました');
     }
   });
 
   // =====================================================================
-  // コード生成
+  // コード生成 (自動または手動)
   // =====================================================================
 
-  function exportCode() {
+  function exportCode(silent = false) {
     if (widgets.length === 0) {
-      showToast('ウィジェットがありません');
+      if (!silent) showToast('ウィジェットがありません');
       return;
     }
 
@@ -920,7 +925,7 @@
     code += '  updateDisplay();\n}\n';
 
     navigator.clipboard.writeText(code).then(() => {
-      showToast('✅ C++コードをクリップボードにコピーしました！');
+      if (!silent) showToast('✅ C++コードをクリップボードにコピーしました！');
     }).catch(() => {
       const textarea = document.createElement('textarea');
       textarea.value = code;
