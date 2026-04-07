@@ -161,10 +161,19 @@
           }
         });
 
+        // ダミーの合計時間（プレビュー用: 100分 = 1時間40分）
+        const totalPreviewSec = sum * 60;
+        const previewH = Math.floor(totalPreviewSec / 3600);
+        const previewM = Math.floor((totalPreviewSec % 3600) / 60);
+        const totalTimeText = previewH > 0 ? `合計: ${previewH}時間${previewM}分` : `合計: ${previewM}分`;
+
         const pieHTML = `<div style="width:${r*2*scale}px; height:${r*2*scale}px; border-radius:50%; background: conic-gradient(${grad.join(',')});"></div>`;
-        return `<div class="widget-render type-piechart" style="display:flex; gap:${8*scale}px; align-items:center;">
-          ${pieHTML}
-          ${legendHTML}</div>
+        return `<div class="widget-render type-piechart" style="display:flex; flex-direction:column; align-items:flex-start;">
+          <div style="display:flex; gap:${8*scale}px; align-items:center;">
+            ${pieHTML}
+            ${legendHTML}</div>
+          </div>
+          <div style="font-size:${8 * scale}px; color:#FFE000; margin-top:${4*scale}px; font-weight:600;">${totalTimeText}</div>
         </div>`;
       }
 
@@ -853,6 +862,14 @@
           code += `        startDeg += deg;\n`;
           code += `      }\n`;
           code += `    }\n`;
+          code += `    // 合計勉強時間を円グラフの下に表示\n`;
+          code += `    int totalH = total / 3600; int totalM = (total % 3600) / 60;\n`;
+          code += `    char totalBuf[30];\n`;
+          code += `    if (totalH > 0) { sprintf(totalBuf, "合計: %d時間%d分", totalH, totalM); }\n`;
+          code += `    else { sprintf(totalBuf, "合計: %d分", totalM); }\n`;
+          code += `    canvas.setFont(&fonts::lgfxJapanGothicP_8); canvas.setTextSize(1);\n`;
+          code += `    canvas.setTextColor(0xFFE0, BLACK);\n`;
+          code += `    canvas.setCursor(${w.x}, ${w.y} + r * 2 + 4); canvas.print(totalBuf);\n`;
           code += `  }\n\n`;
           break;
         case 'schedule': {
