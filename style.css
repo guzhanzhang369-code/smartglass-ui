@@ -254,8 +254,8 @@ body::before {
 
 .widget-card-icon img {
   display: block;
-  width: 26px;
-  height: 26px;
+  width: 34px;
+  height: 34px;
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
