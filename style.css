@@ -21,7 +21,7 @@
   --accent-orange: #fb923c;
   --accent-red: #f87171;
   --gradient-main: linear-gradient(135deg, #6c8cff 0%, #a78bfa 50%, #f472b6 100%);
-  --gradient-subtle: linear-gradient(135deg, rgba(108,140,255,0.1) 0%, rgba(167,139,250,0.1) 100%);
+  --gradient-subtle: linear-gradient(135deg, rgba(108, 140, 255, 0.1) 0%, rgba(167, 139, 250, 0.1) 100%);
   --shadow-glow: 0 0 30px rgba(108, 140, 255, 0.15);
   --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3);
   --radius-sm: 8px;
@@ -32,7 +32,9 @@
 }
 
 /* ===== Reset ===== */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -60,15 +62,22 @@ body::before {
   width: 200%;
   height: 200%;
   background: radial-gradient(circle at 30% 20%, rgba(108, 140, 255, 0.06) 0%, transparent 50%),
-              radial-gradient(circle at 70% 80%, rgba(167, 139, 250, 0.04) 0%, transparent 50%),
-              radial-gradient(circle at 50% 50%, rgba(244, 114, 182, 0.03) 0%, transparent 50%);
+    radial-gradient(circle at 70% 80%, rgba(167, 139, 250, 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(244, 114, 182, 0.03) 0%, transparent 50%);
   z-index: -1;
   animation: bgPulse 15s ease-in-out infinite;
 }
 
 @keyframes bgPulse {
-  0%, 100% { transform: scale(1) rotate(0deg); }
-  50% { transform: scale(1.05) rotate(2deg); }
+
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+
+  50% {
+    transform: scale(1.05) rotate(2deg);
+  }
 }
 
 /* ===== Header ===== */
@@ -239,17 +248,43 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
   flex-shrink: 0;
 }
 
-.widget-card-icon.clock { background: rgba(108, 140, 255, 0.15); }
-.widget-card-icon.text { background: rgba(167, 139, 250, 0.15); }
-.widget-card-icon.timer { background: rgba(52, 211, 153, 0.15); }
-.widget-card-icon.bargraph { background: rgba(251, 146, 60, 0.15); }
-.widget-card-icon.schedule { background: rgba(244, 114, 182, 0.15); }
-.widget-card-icon.weather { background: rgba(103, 232, 249, 0.15); }
-.widget-card-icon.image { background: rgba(248, 113, 113, 0.15); }
+.widget-card-icon img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  filter: brightness(1.1);
+}
+
+.widget-card-icon.clock {
+  background: rgba(108, 140, 255, 0.15);
+}
+
+.widget-card-icon.text {
+  background: rgba(167, 139, 250, 0.15);
+}
+
+.widget-card-icon.timer {
+  background: rgba(52, 211, 153, 0.15);
+}
+
+.widget-card-icon.bargraph {
+  background: rgba(251, 146, 60, 0.15);
+}
+
+.widget-card-icon.schedule {
+  background: rgba(244, 114, 182, 0.15);
+}
+
+.widget-card-icon.weather {
+  background: rgba(103, 232, 249, 0.15);
+}
+
+.widget-card-icon.image {
+  background: rgba(248, 113, 113, 0.15);
+}
 
 .widget-card-info h3 {
   font-size: 0.85rem;
@@ -330,8 +365,8 @@ body::before {
   background: linear-gradient(145deg, #1a1a2e 0%, #0d0d1a 100%);
   border: 2px solid rgba(80, 90, 120, 0.3);
   box-shadow: 0 0 60px rgba(108, 140, 255, 0.08),
-              0 20px 60px rgba(0, 0, 0, 0.5),
-              inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .m5stick-frame::before {
@@ -353,7 +388,8 @@ body::before {
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(60, 70, 100, 0.3);
-  touch-action: none; /* ★ スマホでなぞったときのスクロールを防止 */
+  touch-action: none;
+  /* ★ スマホでなぞったときのスクロールを防止 */
   /* Grid lines for positioning guidance */
   background-image:
     linear-gradient(rgba(108, 140, 255, 0.03) 1px, transparent 1px),
@@ -369,7 +405,8 @@ body::before {
   border-radius: 4px;
   transition: border-color 0.15s ease;
   user-select: none;
-  touch-action: none; /* ★ スマホでウィジェットを触ったときの画面ズレ防止 */
+  touch-action: none;
+  /* ★ スマホでウィジェットを触ったときの画面ズレ防止 */
 }
 
 .screen-widget:hover {
@@ -710,8 +747,10 @@ body::before {
   .sidebar {
     border-right: none;
     border-bottom: 1px solid var(--border-glass);
-    max-height: 300px; /* ★ 高さを広げる */
-    overflow-y: auto;  /* ★ スクロールできるようにする */
+    max-height: 300px;
+    /* ★ 高さを広げる */
+    overflow-y: auto;
+    /* ★ スクロールできるようにする */
   }
 
   .sidebar-section {
@@ -800,6 +839,7 @@ body::before {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -810,13 +850,33 @@ body::before {
   animation: fadeSlideIn 0.3s ease backwards;
 }
 
-.widget-card:nth-child(1) { animation-delay: 0.05s; }
-.widget-card:nth-child(2) { animation-delay: 0.1s; }
-.widget-card:nth-child(3) { animation-delay: 0.15s; }
-.widget-card:nth-child(4) { animation-delay: 0.2s; }
-.widget-card:nth-child(5) { animation-delay: 0.25s; }
-.widget-card:nth-child(6) { animation-delay: 0.3s; }
-.widget-card:nth-child(7) { animation-delay: 0.35s; }
+.widget-card:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+.widget-card:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.widget-card:nth-child(3) {
+  animation-delay: 0.15s;
+}
+
+.widget-card:nth-child(4) {
+  animation-delay: 0.2s;
+}
+
+.widget-card:nth-child(5) {
+  animation-delay: 0.25s;
+}
+
+.widget-card:nth-child(6) {
+  animation-delay: 0.3s;
+}
+
+.widget-card:nth-child(7) {
+  animation-delay: 0.35s;
+}
 
 /* ===== Drag ghost ===== */
 .drag-ghost {

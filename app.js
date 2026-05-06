@@ -39,7 +39,7 @@
 
   function getToday() {
     const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   const SUBJECTS = [
@@ -101,9 +101,9 @@
   };
 
   const TYPE_LABELS = {
-    clock: '🕐 時計', text: '✏️ テキスト', study: '📚 勉強タイマー',
-    timer: '⏱️ タイマー', piechart: '🍩 円グラフ',
-    schedule: '📅 予定', weather: '🌤️ 天気'
+    clock: '時計', text: 'テキスト', study: '勉強タイマー',
+    timer: 'タイマー', piechart: '円グラフ',
+    schedule: '予定', weather: '天気'
   };
 
   // =====================================================================
@@ -130,7 +130,7 @@
       case 'study': {
         // ★ 教科別勉強タイマー（プレビュー）
         return `<div class="widget-render type-study" style="color:${w.color};">
-          <div style="font-size:${12 * scale}px; margin-bottom:4px;">📚 代数</div>
+          <div style="font-size:${12 * scale}px; margin-bottom:4px;">代数</div>
           <div style="font-size:${w.fontSize * scale}px; font-weight:600; font-family:'JetBrains Mono',monospace;">00:00</div>
         </div>`;
       }
@@ -143,7 +143,7 @@
         let grad = [];
         let cur = 0;
         let legendHTML = '<div style="display:flex; flex-direction:column; gap:2px;">';
-        
+
         // プレビュー用にダミー値を設定
         const vals = [30, 20, 15, 10, 8, 7, 5, 2, 2, 1, 0];
         const sum = 100;
@@ -156,7 +156,7 @@
           if (i < 5) { // 凡例は上位5つくらいまで表示
             legendHTML += `<div style="font-size:${8 * scale}px;display:flex;align-items:center;gap:4px;">
               <span style="display:inline-block;width:${4 * scale}px;height:${4 * scale}px;background:${PASTEL_COLORS[i]};"></span>
-              <span style="color:white;">${SUBJECTS[i].substring(0,3)}</span>
+              <span style="color:white;">${SUBJECTS[i].substring(0, 3)}</span>
             </div>`;
           }
         });
@@ -167,13 +167,13 @@
         const previewM = Math.floor((totalPreviewSec % 3600) / 60);
         const totalTimeText = previewH > 0 ? `合計: ${previewH}時間${previewM}分` : `合計: ${previewM}分`;
 
-        const pieHTML = `<div style="width:${r*2*scale}px; height:${r*2*scale}px; border-radius:50%; background: conic-gradient(${grad.join(',')});"></div>`;
+        const pieHTML = `<div style="width:${r * 2 * scale}px; height:${r * 2 * scale}px; border-radius:50%; background: conic-gradient(${grad.join(',')});"></div>`;
         return `<div class="widget-render type-piechart" style="display:flex; flex-direction:column; align-items:flex-start;">
-          <div style="display:flex; gap:${8*scale}px; align-items:center;">
+          <div style="display:flex; gap:${8 * scale}px; align-items:center;">
             ${pieHTML}
             ${legendHTML}</div>
           </div>
-          <div style="font-size:${8 * scale}px; color:#FFE000; margin-top:${4*scale}px; font-weight:600;">${totalTimeText}</div>
+          <div style="font-size:${8 * scale}px; color:#FFE000; margin-top:${4 * scale}px; font-weight:600;">${totalTimeText}</div>
         </div>`;
       }
 
@@ -186,61 +186,61 @@
         const nowMs = now.getTime();
         let nextMs = Infinity;
         let nextEvt = '';
-        
+
         w.content.replace(/　/g, ' ').split('\n').forEach(line => {
           line = line.trim();
           if (!line) return;
-          
+
           let parts = line.split(' ');
           let dateStr = "";
           let timeStr = "";
           let textStr = "";
-          
+
           if (parts[0] && parts[0].includes('-')) {
-             dateStr = parts[0];
-             timeStr = parts[1] || "";
-             textStr = parts.slice(2).join(' ');
+            dateStr = parts[0];
+            timeStr = parts[1] || "";
+            textStr = parts.slice(2).join(' ');
           } else if (parts[0] && parts[0].includes(':')) {
-             dateStr = getToday();
-             timeStr = parts[0];
-             textStr = parts.slice(1).join(' ');
+            dateStr = getToday();
+            timeStr = parts[0];
+            textStr = parts.slice(1).join(' ');
           } else {
-             textStr = line;
+            textStr = line;
           }
 
           if (dateStr && timeStr && textStr) {
-             let targetDate = new Date(`${dateStr}T${timeStr}:00`);
-             if (!isNaN(targetDate.getTime())) {
-               let targetMs = targetDate.getTime();
-               if (targetMs > nowMs) {
-                  if (targetMs < nextMs) {
-                     nextMs = targetMs;
-                     nextEvt = textStr;
-                  }
-               }
-             }
+            let targetDate = new Date(`${dateStr}T${timeStr}:00`);
+            if (!isNaN(targetDate.getTime())) {
+              let targetMs = targetDate.getTime();
+              if (targetMs > nowMs) {
+                if (targetMs < nextMs) {
+                  nextMs = targetMs;
+                  nextEvt = textStr;
+                }
+              }
+            }
           }
         });
-        
+
         let dispText = "予定なし";
         if (nextMs !== Infinity) {
           const diffMs = nextMs - nowMs;
           const diffHours = diffMs / (1000 * 60 * 60);
-          
+
           if (diffHours >= 24) {
-             const tDate = new Date(nextMs);
-             dispText = `${tDate.getMonth()+1}月${tDate.getDate()}日 ${escapeHtml(nextEvt)}`;
+            const tDate = new Date(nextMs);
+            dispText = `${tDate.getMonth() + 1}月${tDate.getDate()}日 ${escapeHtml(nextEvt)}`;
           } else {
-             const diffMins = Math.floor(diffMs / (1000 * 60));
-             if (diffMins >= 60) {
-               const h = Math.floor(diffMins / 60);
-               dispText = escapeHtml(nextEvt) + "まであと" + h + "時間";
-             } else {
-               dispText = escapeHtml(nextEvt) + "まであと" + diffMins + "分";
-             }
+            const diffMins = Math.floor(diffMs / (1000 * 60));
+            if (diffMins >= 60) {
+              const h = Math.floor(diffMins / 60);
+              dispText = escapeHtml(nextEvt) + "まであと" + h + "時間";
+            } else {
+              dispText = escapeHtml(nextEvt) + "まであと" + diffMins + "分";
+            }
           }
         }
-        
+
         return `<div class="widget-render type-schedule" style="font-size:${w.fontSize * scale}px; color:${w.color}; white-space:nowrap;">${dispText}</div>`;
       }
 
@@ -376,7 +376,7 @@
         <div class="prop-group">
           <div class="prop-label">予定</div>
           <div id="schedule-rows" style="display:flex; flex-direction:column; gap:6px;">`;
-      
+
       const lines = widget.content.split('\n');
       lines.forEach((line) => {
         let dateStr = "";
@@ -386,21 +386,21 @@
         if (line) {
           const parts = line.split(' ');
           if (parts[0] && parts[0].includes('-')) {
-             dateStr = parts[0];
-             timeStr = parts[1] || "";
-             textStr = parts.slice(2).join(' ');
+            dateStr = parts[0];
+            timeStr = parts[1] || "";
+            textStr = parts.slice(2).join(' ');
           } else if (parts[0] && parts[0].includes(':')) {
-             dateStr = getToday();
-             timeStr = parts[0];
-             textStr = parts.slice(1).join(' ');
+            dateStr = getToday();
+            timeStr = parts[0];
+            textStr = parts.slice(1).join(' ');
           } else {
-             textStr = line;
+            textStr = line;
           }
         }
 
         if (timeStr && timeStr.length < 5 && timeStr.includes(':')) {
-           const timeParts = timeStr.split(':');
-           timeStr = timeParts[0].padStart(2, '0') + ':' + timeParts[1].padStart(2, '0');
+          const timeParts = timeStr.split(':');
+          timeStr = timeParts[0].padStart(2, '0') + ':' + timeParts[1].padStart(2, '0');
         }
 
         html += `
@@ -413,7 +413,7 @@
               <button class="btn btn-danger schedule-del-btn" style="padding:0; flex-shrink:0; font-size:14px; width:26px; height:26px; border-radius:50%; display:flex; justify-content:center; align-items:center;">✕</button>
             </div>`;
       });
-      
+
       html += `
           </div>
           <button class="btn" id="schedule-add-btn" style="width:100%; margin-top:8px; justify-content:center; padding:6px;">＋ 予定を追加</button>
@@ -428,8 +428,8 @@
 
     // Delete
     html += `<button class="btn btn-danger" id="prop-delete" style="width:100%; margin-top:8px;">
-      <span class="btn-icon">🗑️</span> このウィジェットを削除
-    </button>`;
+  このウィジェットを削除
+</button>`;
 
     propsContent.innerHTML = html;
     if (!propsHidden) {
@@ -475,7 +475,7 @@
       };
 
       const rowsContainer = document.getElementById('schedule-rows');
-      
+
       if (rowsContainer) {
         rowsContainer.addEventListener('input', (e) => {
           if (e.target.classList.contains('schedule-date-input') || e.target.classList.contains('schedule-time-input') || e.target.classList.contains('schedule-text-input')) {
@@ -632,7 +632,7 @@
       let newY = Math.round((e.clientY - screenRect.top - offsetY) / currentScaleY);
       widget.x = clamp(newX, 0, SCREEN_W - 10);
       widget.y = clamp(newY, 0, SCREEN_H - 5);
-      
+
       el.style.left = `${(widget.x / SCREEN_W) * 100}%`;
       el.style.top = `${(widget.y / SCREEN_H) * 100}%`;
       const propX = document.getElementById('prop-x');
@@ -748,7 +748,7 @@
       showToast('ウィジェットがありません');
       return;
     }
-    
+
     exportCode(true); // 送信した時点で自動生成＆コピー
 
     m5stickIP = ipInput.value.trim();
@@ -844,7 +844,7 @@
           code += `  { int m=timerSeconds/60; int s=timerSeconds%60; char b[10]; sprintf(b,"%02d:%02d",m,s); canvas.print(b); }\n\n`;
           break;
         case 'piechart':
-          code += `  { int r=${Math.max(10, w.fontSize*2)}; int px=${w.x} + r, py=${w.y} + r;\n`;
+          code += `  { int r=${Math.max(10, w.fontSize * 2)}; int px=${w.x} + r, py=${w.y} + r;\n`;
           code += `    int total = 0; for(int i=0;i<SUBJECT_COUNT;i++) total+=localSeconds[i];\n`;
           code += `    if (total == 0) { canvas.fillCircle(px, py, r, DARKGREY); }\n`;
           code += `    else { float startDeg = 0; int ly = ${w.y};\n`;
