@@ -390,14 +390,14 @@ body::before {
   position: absolute;
   top: 8px;    /* M5Stickの Y:4 × スケール2 */
   right: 4px;  /* M5Stickの X:238 (右から2px) × スケール2 */
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 16px; /* Font0 (8px) × スケール2 */
+  font-family: 'Inter', sans-serif; /* ゴシック体に合わせる */
+  font-size: 24px; /* lgfxJapanGothicP_12 (12px) × スケール2 */
   color: white;
-  z-index: 40; /* ウィジェットよりは下にしたい場合は適宜調整 */
-  pointer-events: none; /* ドラッグの邪魔にならないようにする */
+  z-index: 40;
+  pointer-events: none;
   white-space: nowrap;
   line-height: 1;
-  opacity: 0.8; /* ガイドなので少しだけ透過 */
+  opacity: 0.8;
 }
 
 /* ===== Screen Widgets ===== */
